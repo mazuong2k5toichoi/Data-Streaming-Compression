@@ -1,93 +1,55 @@
-# [MCUCoder: Adaptive Video Compression for IoT Devices (Workshop on Machine Learning and Compression, NeurIPS'2024)](https://openreview.net/forum?id=ESjy0fQJJE)
+# Integration_Project-_Video_Data_Compression
+My Integration project of learning about data compression, especially for video data compression on resource constrained devices.
 
-## Overview
+You can install my slides via this link : [Slides](https://drive.google.com/drive/folders/1b1AOiBGUpbjDHMJsw_otm5IHJXBlL5Na?usp=sharing)
 
-MCUCoder is an open-source adaptive bitrate video compression model designed specifically for resource-constrained Internet of Things (IoT) devices. With a lightweight encoder requiring only 10.5K parameters and a memory footprint of 350KB, MCUCoder provides efficient video compression without exceeding the capabilities of low-power microcontrollers (MCUs) and edge devices.
+The original repositories of [MCUCoder](https://github.com/ds-kiel/MCUCoder)
 
+## Specs
 
-## Demo
-This video showcases the progressive output of MCUCoder. As demonstrated, utilizing more latent channels improves the quality of the decoded video. The numbers show the count of used latent channels for decoding (out of 12 channels).
+This repository contains learning modules and prototype work for video compression and IoT video streaming. The sections below describe each component, the learning goals, expected inputs/outputs, and minimal implementation notes.
 
-https://github.com/user-attachments/assets/82561907-0709-4109-afce-033e4e7cfcd3
+### Compression technique / Compression technique p2
+- Purpose: Learn and demonstrate core differences between lossless and lossy compression.
+- Learning goals: understand entropy coding (Huffman/Arithmetic), run-length encoding, transform coding (DCT), quantization and their trade-offs (quality vs. rate).
+- Inputs: raw or minimally encoded image frames (PNG, BMP, or YUV frames).
+- Outputs: compressed bitstreams or files (examples: .bin, .crc'd payloads) and reconstructed frames for visual comparison.
+- Success criteria: produce a lossless coder that exactly reconstructs input and a lossy coder that achieves measurable rate-quality trade-offs (PSNR/SSIM vs. bitrate).
+- Notes: keep algorithms modular so you can swap entropy coder, transform, and quantizer. Document where each experiment lives (e.g., a folder per technique).
 
-[Video source](https://github.com/facebookresearch/dinov2) 
+### H.264
+- Purpose: Learn about H.264 (AVC) video compression and its practical use for efficient streaming/storage.
+- Learning goals: understand I-frames/P-frames/B-frames, motion estimation, macroblocks/CTUs, intra/inter prediction, and baseline encoder pipeline.
+- Inputs: raw video or sequence of frames (YUV recommended for reference testing).
+- Outputs: H.264-compliant bitstreams (.mp4/.mkv containing H.264) and decoder-verified reconstructions.
+- Success criteria: encode sample clips with a reference library or wrapper (libx264) and verify playback and bitrate/quality metrics.
+- Notes: for resource constrained devices, study encoder presets and tune motion search/quantization to reduce CPU while keeping acceptable quality.
 
+### IOVT compressions (IoT Video) and MCUCoder
+- Purpose: Explore compression and streaming strategies tailored to IoT devices (microcontrollers, low-power cameras) and provide a small encoder ("MCUCoder") for constrained hardware.
+- Learning goals: end-to-end streaming flow (capture → encode → packetize → transport), packet loss resilience, low-latency trade-offs, and power/CPU/memory profiling.
+- Inputs: low-resolution frames (e.g., 320x240, grayscale/RGB565), short clips or live camera feeds from MCU-attached sensors.
+- Outputs: small, packet-friendly compressed chunks for transport over constrained networks (MQTT/UDP/CoAP over lossy links), with metadata for reassembly and simple error detection.
+- Success criteria: produce a working MCU-oriented encoder proof-of-concept (MCUCoder) that can run on a microcontroller simulator or low-end board, and stream to a host receiver that reconstructs frames with reasonable latency.
+- Notes: prioritize simple, fast transforms and lightweight entropy coding (e.g., predictive coding + lightweight Huffman or LZ variants). Include a basic packet format and minimal error detection (CRC8/16).
 
-## Features
+## Contract (brief)
+- Inputs: frame sequences (common formats: PNG, BMP, raw YUV, small camera output formats). Acceptable sizes and color formats should be documented per module.
+- Outputs: compressed bitstreams and decoder-side reconstructed frames; metrics (bitrate, PSNR/SSIM), and example player-ready files for H.264 experiments.
+- Error modes: unsupported formats, out-of-memory on MCU targets, packet loss in streaming; each module should log clear errors and fail gracefully.
 
-- **Ultra-Lightweight Encoder**: Only 10.5K parameters, enabling efficient processing on MCUs.
-- **Low Memory Usage**: 350KB memory footprint, making it ideal for edge devices with limited RAM (1-2MB).
-- **High Compression Efficiency**: Reduces bitrate by **55.65% (MCL-JCV dataset)** and **55.59% (UVG dataset)** while maintaining visual quality.
-- **Adaptive Bitrate Streaming**: Latent representation sorted by importance allows for dynamic transmission based on available bandwidth.
-- **Comparable Energy Consumption to M-JPEG**: Ensures efficient power usage for real-time streaming applications.
-
-![](figures/arch_jpeg.jpg)
-
-## Installation Instructions
-
-Follow these instructions to set up the required Python environment for running MCUCoder.
-
-1. Clone this Git repository to your local machine using the following command:
-
-   ```bash
-   git clone https://github.com/ds-kiel/MCUCoder
-   cd MCUCoder
-   ```
-2. Create a virtual Python environment
-
-    ```bash
-    virtualenv mcucoder
-    source mcucoder/bin/activate
-    ``` 
-3. Install the necessary Python packages by running:
-
-   ```bash
-   pip install -r req.txt
-   ```
-
-## Train
-Use ``` imagenet_prepration.py ``` to extract 400,000 ImageNet images with the highest resolution. To train MCUCoder, use the following command:
-
-```bash
-python train.py --batch_size <YOUR_BATCH_SIZE> --imagenet_root <YOUR_IMAGENET_PATH> --wandb_name <YOUR_WANDB_NAME> --wandb_project <YOUR_WANDB_PROJECT> --loss <YOUR_LOSS_FUNCTION> --number_of_iterations <TRAIN_ITER> --number_of_channels <N>
-   ```
-
-### Example Command
-```bash
-python train.py --batch_size 16 --imagenet_root "/path/to/imagenet" --wandb_name "MCUCoder_Training" --wandb_project "MCUCoder" --loss "msssim" --number_of_iterations 1000000 --number_of_channels 196
-   ```
-
-## Video Encoding and Decoding with MCUCoder
-
-This script allows you to process videos using MCUCoder for encoding and decoding. It takes an input video, applies the model, and saves the output in the specified directory.
-
-### Usage
-To process a video, use the following command:
-```bash
-python video_enc_dec.py --batch_size <YOUR_BATCH_SIZE> --model_path <YOUR_MODEL_PATH> --video_path <YOUR_VIDEO_PATH> --output_dir <OUTPUT_DIRECTORY>
-```
+## Edge cases and constraints
+- Empty input or single-frame inputs — lossless coder must handle trivially.
+- Extremely low bitrates — verify behavior of lossy modes and avoid catastrophic quality collapse.
+- Packet loss and reordering for IoT streams — specify simple resync or keyframe intervals.
+- Memory/CPU caps for MCU targets — document expected RAM/flash usage and provide a minimal configuration for target boards.
 
 
-## Pretrained models
+## Notes
+- This spec is intentionally lightweight and educational. If you want, I can:
+	- scaffold the module folders and example runner scripts,
+	- add a small PSNR/SSIM measurement script and sample test vectors,
+	- or produce a minimal MCUCoder prototype in C (or a simulator-friendly Python version).
 
-The MCUCoder pretrained model, optimized with MS-SSIM loss, trained for 1M iterations, and featuring 196 decoder channels, is available at: https://zenodo.org/records/14988203.
-
-## License
-
-This project is licensed under the MIT License. See the `LICENSE` file for details.
-
-## Citation
-
-```
-@inproceedings{
-hojjat2024mcucoder,
-title={{MCUC}oder: Adaptive Bitrate Learned Video Compression for IoT Devices},
-author={Ali Hojjat and Janek Haberer and Olaf Landsiedel},
-booktitle={Workshop on Machine Learning and Compression, NeurIPS 2024},
-year={2024},
-url={https://openreview.net/forum?id=ESjy0fQJJE}
-}
-```
-
-
-
+---
+_Updated: added high-level specs for the repository components (Compression technique, Compression technique p2, H.264, IOVT compressions, MCUCoder)._ 
