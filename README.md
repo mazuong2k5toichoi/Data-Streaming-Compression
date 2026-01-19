@@ -1,7 +1,7 @@
 # Integration_Project-_Video_Data_Compression
 My Integration project of learning about data compression, especially for video data compression on resource constrained devices.
 
-You can install my slides via this link : [Slides](https://drive.google.com/drive/folders/1b1AOiBGUpbjDHMJsw_otm5IHJXBlL5Na?usp=sharing)
+You can install my slides and the final report via this link : [Slides](https://drive.google.com/drive/folders/1b1AOiBGUpbjDHMJsw_otm5IHJXBlL5Na?usp=sharing)
 
 The original repositories of [MCUCoder](https://github.com/ds-kiel/MCUCoder)
 
